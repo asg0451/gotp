@@ -2,13 +2,13 @@
 dev:
 	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -g" \
 	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread" \
-	go build -o gotp .
+	go build -o gotp ./cmd/gotp
 
 # Development build with CGO enabled (macOS Homebrew)
 dev-macos:
 	CGO_ENABLED=1 CGO_CFLAGS="-I/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/include -Wall -g" \
 	CGO_LDFLAGS="-L/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/lib -L. -lei -lpthread" \
-	go build -o gotp .
+	go build -o gotp ./cmd/gotp
 
 # Auto-detect platform for development build
 dev-auto:
@@ -24,13 +24,13 @@ dev-auto:
 cli:
 	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -O2" \
 	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread" \
-	go build -ldflags="-s -w" -o gotp .
+	go build -ldflags="-s -w" -o gotp ./cmd/gotp
 
 # CLI build for production (macOS Homebrew)
 cli-macos:
 	CGO_ENABLED=1 CGO_CFLAGS="-I/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/include -Wall -O2" \
 	CGO_LDFLAGS="-L/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/lib -L. -lei -lpthread" \
-	go build -ldflags="-s -w" -o gotp .
+	go build -ldflags="-s -w" -o gotp ./cmd/gotp
 
 # Auto-detect platform for production build
 cli-auto:

@@ -50,6 +50,49 @@ The project supports multiple build targets for different environments:
 
 ## Quick Start
 
+### Using the Library
+
+The `pkg/erlang` package provides a clean Go interface to Erlang's ei library:
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    
+    "go.coldcutz.net/gotp/pkg/erlang"
+)
+
+func main() {
+    config := erlang.Config{
+        Cookie:         "super_secret",
+        MyNodeName:     "myapp",
+        RemoteNodeName: "remote@localhost",
+        Creation:       1,
+        Port:           9999,
+    }
+
+    conn, err := erlang.NewConnection(config)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Connect and send RPC calls...
+    sockFd, err := conn.Connect(config.RemoteNodeName)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    response, err := conn.SendRPC(sockFd, "MyModule", "my_function", "[~s]", "Hello")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println("Response:", response)
+}
+```
+
 ### Local Development
 
 **Linux:**
@@ -104,8 +147,14 @@ make dev-auto
 
 ```
 .
-├── main.go          # Main Go application with CGO bindings
-├── gotp.h           # C header with wrapper functions
+├── cmd/
+│   └── gotp/        # Main application executable
+│       └── main.go  # Application entry point
+├── pkg/
+│   └── erlang/      # Erlang library package
+│       ├── connection.go  # Core Erlang connection functionality
+│       ├── gotp.h   # C header with wrapper functions
+│       └── README.md # Library documentation
 ├── Makefile         # Build targets for different environments
 ├── Dockerfile       # Multi-stage Docker build
 ├── go.mod           # Go module definition
