@@ -109,6 +109,9 @@ func (c *Connection) SendRPC(sockFd int, module, function, format string, args .
 		return nil, fmt.Errorf("ei_rpc failed: %s", getErlError())
 	}
 
+	// Debug: print response buffer info
+	fmt.Printf("Response buffer index: %d\n", response.index)
+	
 	var idx C.int
 	vals, err := decodeTuple(response.buff, &idx)
 	if err != nil {
@@ -127,7 +130,8 @@ func getErlError() string {
 func decodeTuple(buff *C.char, idx *C.int) ([]string, error) {
 	var size C.int
 	if ret := C.ei_decode_tuple_header(buff, idx, &size); ret < 0 {
-		return nil, fmt.Errorf("ei_decode_tuple_header failed (ret: %d): %s", ret, getErlError())
+		// If it's not a tuple, try to decode as a single value
+		return decodeSingleValue(buff, idx)
 	}
 
 	var vals []string
@@ -151,6 +155,22 @@ func decodeTuple(buff *C.char, idx *C.int) ([]string, error) {
 		}
 	}
 	return vals, nil
+}
+
+// decodeSingleValue decodes a single Erlang value (not a tuple)
+func decodeSingleValue(buff *C.char, idx *C.int) ([]string, error) {
+	var val C.ei_term
+	if ret := C.ei_decode_ei_term(buff, idx, &val); ret < 0 {
+		return nil, fmt.Errorf("ei_decode_ei_term failed (ret: %d): %s", ret, getErlError())
+	}
+	
+	switch val.ei_type {
+	case C.ERL_ATOM_EXT:
+		decodedVal := nullTerminatedBytesToString(val.value[:])
+		return []string{decodedVal}, nil
+	default:
+		return nil, fmt.Errorf("unsupported single value type: %d", val.ei_type)
+	}
 }
 
 // nullTerminatedBytesToString converts a null-terminated byte array to a Go string

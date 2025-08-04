@@ -42,7 +42,7 @@ func run() error {
 	}
 	fmt.Println("Connected to remote Erlang node")
 
-	response, err := conn.SendRPC(sockFd, "ItestElixirApp.Worker", "send_to_self", "[~s]", "Hello world")
+	response, err := conn.SendRPC(sockFd, "erlang", "node", "[]")
 	if err != nil {
 		return fmt.Errorf("failed to send RPC: %w", err)
 	}

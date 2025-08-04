@@ -14,6 +14,13 @@ defmodule ItestElixirApp.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ItestElixirApp.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+    
+    # Keep the application running
+    spawn(fn -> 
+      Process.sleep(:infinity)
+    end)
+    
+    result
   end
 end
