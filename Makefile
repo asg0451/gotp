@@ -88,6 +88,16 @@ itest-example:
 itest-run-epmd:
 	epmd -d
 
+# Automated integration tests
+itest-automated:
+	cd test_integration && go test -v -run TestIntegrationWithElixirApp
+
+itest-all:
+	cd test_integration && go test -v
+
+itest-compile:
+	cd test_integration && go test -v -run TestElixirAppCompilation
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -106,6 +116,9 @@ help:
 	@echo "  start-itest-app - Start itest Elixir app"
 	@echo "  itest-example   - Run itest example"
 	@echo "  itest-run-epmd  - Run epmd"
+	@echo "  itest-automated - Run automated integration tests"
+	@echo "  itest-all       - Run all integration tests"
+	@echo "  itest-compile   - Test Elixir app compilation"
 	@echo ""
 	@echo "For local development on macOS, use: make dev-macos"
 	@echo "For local development on Linux, use: make dev"
