@@ -13,6 +13,9 @@ defmodule ItestElixirApp do
     def call_to_self(msg) do
       GenServer.call(__MODULE__, msg)
     end
+    def send_to_self(msg) do
+      send(__MODULE__, msg)
+    end
 
     # Callbacks
 

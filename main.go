@@ -12,6 +12,7 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"unsafe"
 )
 
 func main() {
@@ -50,26 +51,65 @@ func run() error {
 
 	fmt.Println("Connected to remote Erlang node")
 
-	// send message to remote node
-	// 1. create tuple to send
-	var req C.ei_x_buff
-	C.ei_x_new_with_version(&req)
-	C.ei_x_encode_tuple_header(&req, 2)
-	C.ei_x_encode_pid(&req, C.ei_self(&ec))
-	C.ei_x_encode_atom(&req, C.CString("Hello world"))
-	defer C.ei_x_free(&req)
-	// 2. send message
-	if C.ei_reg_send(&ec, remoteNodeSockFd, C.CString("ItestElixirApp.Worker"), req.buff, req.index) != 0 {
-		return fmt.Errorf("ei_reg_send failed: %s", getErlError())
-	}
-	fmt.Println("Sent message to remote Erlang node")
+	// TODO: why proper way no work?
+	// // send message to remote node
+	// // 1. create tuple to send
+	// var req C.ei_x_buff
+	// C.ei_x_new_with_version(&req)
+	// C.ei_x_encode_tuple_header(&req, 2)
+	// C.ei_x_encode_pid(&req, C.ei_self(&ec))
+	// C.ei_x_encode_atom(&req, C.CString("Hello world"))
+	// defer C.ei_x_free(&req)
+	// // 2. send message
+	// if C.ei_reg_send(&ec, remoteNodeSockFd, C.CString("ItestElixirApp.Worker"), req.buff, req.index) != 0 {
+	// 	return fmt.Errorf("ei_reg_send failed: %s", getErlError())
+	// }
 
-	// ei_x_buff buf;
-	// ei_x_new_with_version(&buf);
-	// ei_x_encode_tuple_header(&buf, 2);
-	// ei_x_encode_pid(&buf, ei_self(ec));
-	// ei_x_encode_atom(&buf, "Hello world");
-	// ei_reg_send(&ec, fd, "my_server", buf.buff, buf.index);
+	// workaround from https://stackoverflow.com/questions/57893503/send-message-to-genserver-from-c
+	var request C.ei_x_buff
+	C.ei_x_new(&request)
+	C.gotp_wrapped_ei_x_format_wo_ver_1(&request, C.CString("[~s]"), C.CString("Hello world"))
+	defer C.ei_x_free(&request)
+	var response C.ei_x_buff
+	C.ei_x_new(&response)
+	defer C.ei_x_free(&response)
+	if C.ei_rpc(&ec, remoteNodeSockFd, C.CString("ItestElixirApp.Worker"), C.CString("send_to_self"), request.buff, request.index, &response) != 0 {
+		return fmt.Errorf("ei_rpc failed: %s", getErlError())
+	}
+
+	var idx C.int
+	var size C.int
+	if C.ei_decode_tuple_header(response.buff, &idx, &size) != 0 {
+		return fmt.Errorf("ei_decode_ei_term failed: %s", getErlError())
+	}
+
+	var vals []string
+	for i := 0; i < int(size); i++ {
+		var val C.ei_term
+		if C.ei_decode_ei_term(response.buff, &idx, &val) != 1 {
+			return fmt.Errorf("ei_decode_ei_term failed: %s", getErlError())
+		}
+		// TODO: actually value is a union; see https://sunzenshen.github.io/tutorials/2015/05/09/cgotchas-intro.html and https://www.erlang.org/docs/23/man/ei#ei_term
+		switch val.ei_type {
+		case C.ERL_ATOM_EXT:
+			decodedVal := nullTerminatedBytesToString(val.value[:])
+			fmt.Println("decoded atom: ", decodedVal)
+			vals = append(vals, decodedVal)
+		case C.ERL_SMALL_TUPLE_EXT, C.ERL_LARGE_TUPLE_EXT:
+			// TODO recurse
+		default:
+			fmt.Println("Unknown type: ", val.ei_type)
+			continue
+		}
+
+		vals = append(vals, string(val.value[:val.size]))
+	}
+	fmt.Println("Response: ", vals)
+
+	// print response
+	fmt.Println("Response: ", C.GoString(response.buff))
+
+	fmt.Println("Sent message to remote Erlang node")
 
 	return nil
 }
@@ -78,14 +118,6 @@ func getErlError() string {
 	return C.GoString(C.strerror(C.erl_errno))
 }
 
-// result := C.hello_world()
-// goResult := C.GoString(result)
-// fmt.Printf("C function returned: %s\n", goResult)
-
-// // Example with parameter
-// input := C.CString("Go")
-// defer C.free(unsafe.Pointer(input))
-
-// greeting := C.greet(input)
-// goGreeting := C.GoString(greeting)
-// fmt.Printf("Greeting: %s\n", goGreeting)
+func nullTerminatedBytesToString(b []byte) string {
+	return C.GoString((*C.char)(unsafe.Pointer(&b[0])))
+}
