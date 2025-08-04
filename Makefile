@@ -3,3 +3,6 @@ start-itest-app:
 
 itest-example:
 	elixir --sname itest@localhost --cookie 'super_secret' -e 'Node.connect(:"itestapp@localhost");  Node.spawn(:"itestapp@localhost", fn -> send(ItestElixirApp.Worker, "hi") end)'
+
+itest-run-epmd:
+	epmd -d
