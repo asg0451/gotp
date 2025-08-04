@@ -8,9 +8,12 @@ package main
 import "C"
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"unsafe"
+
+	"github.com/goerlang/etf"
 )
 
 func main() {
@@ -49,20 +52,6 @@ func run() error {
 
 	fmt.Println("Connected to remote Erlang node")
 
-	// TODO: why proper way no work?
-	// // send message to remote node
-	// // 1. create tuple to send
-	// var req C.ei_x_buff
-	// C.ei_x_new_with_version(&req)
-	// C.ei_x_encode_tuple_header(&req, 2)
-	// C.ei_x_encode_pid(&req, C.ei_self(&ec))
-	// C.ei_x_encode_atom(&req, C.CString("Hello world"))
-	// defer C.ei_x_free(&req)
-	// // 2. send message
-	// if C.ei_reg_send(&ec, remoteNodeSockFd, C.CString("ItestElixirApp.Worker"), req.buff, req.index) != 0 {
-	// 	return fmt.Errorf("ei_reg_send failed: %s", getErlError())
-	// }
-
 	// workaround from https://stackoverflow.com/questions/57893503/send-message-to-genserver-from-c
 	var request C.ei_x_buff
 	C.ei_x_new(&request)
@@ -75,12 +64,13 @@ func run() error {
 		return fmt.Errorf("ei_rpc failed: %s", getErlError())
 	}
 
-	var idx C.int
-	vals, err := decodeTuple(response.buff, &idx)
+	// Use goerlang/etf to decode the response
+	responseBytes := C.GoBytes(unsafe.Pointer(response.buff), response.index)
+	decodedTerm, err := decodeETFResponse(responseBytes)
 	if err != nil {
-		return fmt.Errorf("decodeTuple failed: %s", err)
+		return fmt.Errorf("decodeETFResponse failed: %s", err)
 	}
-	fmt.Println("Response: ", vals)
+	fmt.Println("Response: ", formatETFTerm(decodedTerm))
 
 	fmt.Println("Sent message to remote Erlang node")
 
@@ -91,40 +81,54 @@ func getErlError() string {
 	return C.GoString(C.strerror(C.erl_errno))
 }
 
-func decodeTuple(buff *C.char, idx *C.int) ([]string, error) {
-	var size C.int
-	if ret := C.ei_decode_tuple_header(buff, idx, &size); ret < 0 {
-		return nil, fmt.Errorf("ei_decode_tuple_header failed (ret: %d): %s", ret, getErlError())
+// decodeETFResponse decodes Erlang External Term Format using goerlang/etf
+func decodeETFResponse(data []byte) (etf.Term, error) {
+	// Skip the version byte (131) if present
+	if len(data) > 0 && data[0] == 131 {
+		data = data[1:]
 	}
-
-	var vals []string
-	for i := 0; i < int(size); i++ {
-		var val C.ei_term
-		// note: ret = 1 if the decoded data is in val.value, 0 if it didnt fit / isnt
-		if ret := C.ei_decode_ei_term(buff, idx, &val); ret < 0 {
-			return nil, fmt.Errorf("ei_decode_ei_term failed (ret: %d): %s", ret, getErlError())
-		}
-		switch val.ei_type {
-		case C.ERL_ATOM_EXT:
-			decodedVal := nullTerminatedBytesToString(val.value[:])
-			fmt.Println("decoded atom: ", decodedVal)
-			vals = append(vals, decodedVal)
-		case C.ERL_SMALL_TUPLE_EXT, C.ERL_LARGE_TUPLE_EXT:
-			fmt.Println("saw tuple, recursing")
-			// or something..?
-			subVals, err := decodeTuple(buff, idx)
-			if err != nil {
-				return nil, err
-			}
-			// todo not flatten
-			vals = append(vals, subVals...)
-		default:
-			return nil, fmt.Errorf("unknown type: %d", val.ei_type)
-		}
+	
+	reader := bytes.NewReader(data)
+	context := &etf.Context{}
+	term, err := context.Read(reader)
+	if err != nil {
+		return nil, fmt.Errorf("ETF decode failed: %v", err)
 	}
-	return vals, nil
+	return term, nil
 }
 
-func nullTerminatedBytesToString(b []byte) string {
-	return C.GoString((*C.char)(unsafe.Pointer(&b[0])))
+// Helper function to convert ETF terms to readable strings
+func formatETFTerm(term etf.Term) string {
+	switch v := term.(type) {
+	case etf.Atom:
+		return string(v)
+	case string:
+		return v
+	case int:
+		return fmt.Sprintf("%d", v)
+	case float64:
+		return fmt.Sprintf("%f", v)
+	case etf.Tuple:
+		result := "("
+		for i, elem := range v {
+			if i > 0 {
+				result += ", "
+			}
+			result += formatETFTerm(elem)
+		}
+		result += ")"
+		return result
+	case etf.List:
+		result := "["
+		for i, elem := range v {
+			if i > 0 {
+				result += ", "
+			}
+			result += formatETFTerm(elem)
+		}
+		result += "]"
+		return result
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
