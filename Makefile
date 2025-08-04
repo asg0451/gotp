@@ -6,3 +6,12 @@ itest-example:
 
 itest-run-epmd:
 	epmd -d
+
+itest-automated:
+	cd test_integration && go test -v -run TestIntegrationWithElixirApp
+
+itest-all:
+	cd test_integration && go test -v
+
+itest-compile:
+	cd test_integration && go test -v -run TestElixirAppCompilation
