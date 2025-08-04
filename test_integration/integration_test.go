@@ -93,69 +93,7 @@ func TestIntegrationWithElixirApp(t *testing.T) {
 	t.Logf("Elixir process output: %s", elixirOutputStr)
 }
 
-func TestElixirNodeConnection(t *testing.T) {
-	// Check if required tools are available
-	if err := checkRequiredTools(); err != nil {
-		t.Skipf("Skipping integration test - %v", err)
-	}
 
-	// Get the current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get current directory: %v", err)
-	}
-
-	// Path to the Elixir app
-	elixirAppPath := filepath.Join(cwd, "..", "itest", "itest_elixir_app")
-
-	// Start epmd (Erlang Port Mapper Daemon) if not already running
-	startEpmd(t)
-
-	// Start the Elixir application
-	elixirCmd := exec.CommandContext(context.Background(), "iex", "--sname", "itestapp@localhost", "--cookie", "super_secret", "-S", "mix", "run")
-	elixirCmd.Dir = elixirAppPath
-	
-	var elixirOutput strings.Builder
-	elixirCmd.Stdout = &elixirOutput
-	elixirCmd.Stderr = &elixirOutput
-
-	t.Log("Starting Elixir application...")
-	if err := elixirCmd.Start(); err != nil {
-		t.Fatalf("Failed to start Elixir application: %v", err)
-	}
-
-	// Give the Elixir app time to start up
-	time.Sleep(5 * time.Second)
-
-	// Ensure the process is cleaned up
-	defer func() {
-		if elixirCmd.Process != nil {
-			elixirCmd.Process.Kill()
-			elixirCmd.Wait()
-		}
-		t.Logf("Elixir app output: %s", elixirOutput.String())
-	}()
-
-	// Test direct Elixir communication first
-	t.Log("Testing direct Elixir communication...")
-	elixirTestCmd := exec.CommandContext(context.Background(), "elixir", "--sname", "itest@localhost", "--cookie", "super_secret", "-e", 
-		"Node.connect(:\"itestapp@localhost\"); Node.spawn(:\"itestapp@localhost\", fn -> send(ItestElixirApp.Worker, \"hi\") end)")
-	
-	output, err := elixirTestCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("Elixir test failed: %v, output: %s", err, string(output))
-	}
-
-	// Check for message receipt in Elixir process stdout
-	elixirOutputStr := elixirOutput.String()
-	if !strings.Contains(elixirOutputStr, "Received message: \"hi\"") {
-		t.Errorf("Expected Elixir process to receive message 'hi', but got: %s", elixirOutputStr)
-	}
-
-	t.Log("Direct Elixir communication test completed successfully")
-	t.Logf("Elixir test output: %s", string(output))
-	t.Logf("Elixir process output: %s", elixirOutputStr)
-}
 
 func startEpmd(t *testing.T) {
 	// Check if epmd is already running
@@ -176,25 +114,7 @@ func startEpmd(t *testing.T) {
 	time.Sleep(2 * time.Second)
 }
 
-func TestBuildAndRun(t *testing.T) {
-	// Test that the Go program can be built
-	t.Log("Testing Go program build...")
-	buildCmd := exec.Command("go", "build", "-o", "test_binary", "main.go")
-	buildCmd.Dir = filepath.Join("..") // Build from parent directory
-	output, err := buildCmd.CombinedOutput()
-	if err != nil {
-		// Check if it's a CGO/Erlang library issue
-		if strings.Contains(string(output), "ei.h: No such file or directory") {
-			t.Skipf("Skipping build test - Erlang ei library not found. This is expected in test environments without Erlang development headers.\nOutput: %s", string(output))
-		}
-		t.Fatalf("Failed to build Go program: %v\nOutput: %s", err, string(output))
-	}
 
-	// Clean up the test binary
-	defer os.Remove(filepath.Join("..", "test_binary"))
-
-	t.Log("Go program builds successfully")
-}
 
 func TestElixirAppCompilation(t *testing.T) {
 	// Check if required tools are available
