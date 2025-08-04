@@ -98,6 +98,16 @@ itest-all:
 itest-compile:
 	cd test_integration && go test -v -run TestElixirAppCompilation
 
+# Go code compilation tests (no Elixir required)
+itest-go-compile:
+	cd test_integration && go test -v -run TestGoCodeCompilation
+
+itest-library-compile:
+	cd test_integration && go test -v -run TestLibraryPackageCompilation
+
+itest-compile-all:
+	cd test_integration && go test -v -run "Test.*Compilation"
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -119,6 +129,9 @@ help:
 	@echo "  itest-automated - Run automated integration tests"
 	@echo "  itest-all       - Run all integration tests"
 	@echo "  itest-compile   - Test Elixir app compilation"
+	@echo "  itest-go-compile - Test Go code compilation"
+	@echo "  itest-library-compile - Test library package compilation"
+	@echo "  itest-compile-all - Test all compilation targets"
 	@echo ""
 	@echo "For local development on macOS, use: make dev-macos"
 	@echo "For local development on Linux, use: make dev"

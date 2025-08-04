@@ -29,8 +29,12 @@ func TestIntegrationWithElixirApp(t *testing.T) {
 	// Start epmd (Erlang Port Mapper Daemon) if not already running
 	startEpmd(t)
 
+	// Create a context with timeout for the entire test
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Start the Elixir application
-	elixirCmd := exec.CommandContext(context.Background(), "iex", "--sname", "itestapp@localhost", "--cookie", "super_secret", "-S", "mix", "run")
+	elixirCmd := exec.CommandContext(ctx, "iex", "--sname", "itestapp@localhost", "--cookie", "super_secret", "-S", "mix", "run")
 	elixirCmd.Dir = elixirAppPath
 	
 	// Capture output for debugging
@@ -48,16 +52,36 @@ func TestIntegrationWithElixirApp(t *testing.T) {
 
 	// Ensure the process is cleaned up
 	defer func() {
+		t.Log("Cleaning up Elixir process...")
 		if elixirCmd.Process != nil {
-			elixirCmd.Process.Kill()
-			elixirCmd.Wait() // Wait for the process to actually terminate
+			// Try graceful shutdown first
+			if err := elixirCmd.Process.Signal(os.Interrupt); err != nil {
+				t.Logf("Failed to send interrupt signal: %v", err)
+			}
+			
+			// Wait a bit for graceful shutdown
+			done := make(chan error, 1)
+			go func() {
+				done <- elixirCmd.Wait()
+			}()
+			
+			select {
+			case <-done:
+				t.Log("Elixir process terminated gracefully")
+			case <-time.After(5 * time.Second):
+				t.Log("Force killing Elixir process...")
+				if err := elixirCmd.Process.Kill(); err != nil {
+					t.Logf("Failed to kill process: %v", err)
+				}
+				elixirCmd.Wait() // Wait for the process to actually terminate
+			}
 		}
 		t.Logf("Elixir app output: %s", elixirOutput.String())
 	}()
 
 	// Test the connection by running our Go program
 	t.Log("Testing Go-Elixir communication...")
-	goCmd := exec.CommandContext(context.Background(), "go", "run", "main.go")
+	goCmd := exec.CommandContext(ctx, "go", "run", "./cmd/gotp")
 	goCmd.Dir = filepath.Join(cwd, "..") // Run from parent directory
 	
 	// Capture Go program output

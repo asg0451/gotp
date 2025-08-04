@@ -28,6 +28,17 @@ type Config struct {
 
 // NewConnection creates a new Erlang connection
 func NewConnection(config Config) (*Connection, error) {
+	// Validate configuration
+	if config.Cookie == "" {
+		return nil, fmt.Errorf("cookie cannot be empty")
+	}
+	if config.MyNodeName == "" {
+		return nil, fmt.Errorf("my node name cannot be empty")
+	}
+	if config.RemoteNodeName == "" {
+		return nil, fmt.Errorf("remote node name cannot be empty")
+	}
+
 	C.ei_init()
 
 	conn := &Connection{}
