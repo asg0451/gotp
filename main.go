@@ -78,36 +78,11 @@ func run() error {
 	}
 
 	var idx C.int
-	var size C.int
-	if C.ei_decode_tuple_header(response.buff, &idx, &size) != 0 {
-		return fmt.Errorf("ei_decode_ei_term failed: %s", getErlError())
-	}
-
-	var vals []string
-	for i := 0; i < int(size); i++ {
-		var val C.ei_term
-		if C.ei_decode_ei_term(response.buff, &idx, &val) != 1 {
-			return fmt.Errorf("ei_decode_ei_term failed: %s", getErlError())
-		}
-		// TODO: actually value is a union; see https://sunzenshen.github.io/tutorials/2015/05/09/cgotchas-intro.html and https://www.erlang.org/docs/23/man/ei#ei_term
-		switch val.ei_type {
-		case C.ERL_ATOM_EXT:
-			decodedVal := nullTerminatedBytesToString(val.value[:])
-			fmt.Println("decoded atom: ", decodedVal)
-			vals = append(vals, decodedVal)
-		case C.ERL_SMALL_TUPLE_EXT, C.ERL_LARGE_TUPLE_EXT:
-			// TODO recurse
-		default:
-			fmt.Println("Unknown type: ", val.ei_type)
-			continue
-		}
-
-		vals = append(vals, string(val.value[:val.size]))
+	vals, err := decodeTuple(response.buff, &idx)
+	if err != nil {
+		return fmt.Errorf("decodeTuple failed: %s", err)
 	}
 	fmt.Println("Response: ", vals)
-
-	// print response
-	fmt.Println("Response: ", C.GoString(response.buff))
 
 	fmt.Println("Sent message to remote Erlang node")
 
@@ -116,6 +91,40 @@ func run() error {
 
 func getErlError() string {
 	return C.GoString(C.strerror(C.erl_errno))
+}
+
+func decodeTuple(buff *C.char, idx *C.int) ([]string, error) {
+	var size C.int
+	if ret := C.ei_decode_tuple_header(buff, idx, &size); ret < 0 {
+		return nil, fmt.Errorf("ei_decode_tuple_header failed (ret: %d): %s", ret, getErlError())
+	}
+
+	var vals []string
+	for i := 0; i < int(size); i++ {
+		var val C.ei_term
+		// note: ret = 1 if the decoded data is in val.value, 0 if it didnt fit / isnt
+		if ret := C.ei_decode_ei_term(buff, idx, &val); ret < 0 {
+			return nil, fmt.Errorf("ei_decode_ei_term failed (ret: %d): %s", ret, getErlError())
+		}
+		switch val.ei_type {
+		case C.ERL_ATOM_EXT:
+			decodedVal := nullTerminatedBytesToString(val.value[:])
+			fmt.Println("decoded atom: ", decodedVal)
+			vals = append(vals, decodedVal)
+		case C.ERL_SMALL_TUPLE_EXT, C.ERL_LARGE_TUPLE_EXT:
+			fmt.Println("saw tuple, recursing")
+			// or something..?
+			subVals, err := decodeTuple(buff, idx)
+			if err != nil {
+				return nil, err
+			}
+			// todo not flatten
+			vals = append(vals, subVals...)
+		default:
+			return nil, fmt.Errorf("unknown type: %d", val.ei_type)
+		}
+	}
+	return vals, nil
 }
 
 func nullTerminatedBytesToString(b []byte) string {
