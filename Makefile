@@ -1,13 +1,13 @@
 # Development build with CGO enabled
 dev:
-	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-*/include -Wall -g" \
-	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-*/lib -lei -lpthread" \
+	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -g" \
+	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread" \
 	go build -o gotp .
 
 # CLI build for production
 cli:
-	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-*/include -Wall -O2" \
-	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-*/lib -lei -lpthread" \
+	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -O2" \
+	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread" \
 	go build -ldflags="-s -w" -o gotp .
 
 # Clean build artifacts
@@ -16,8 +16,8 @@ clean:
 
 # Run tests
 test:
-	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-*/include -Wall -g" \
-	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-*/lib -lei -lpthread" \
+	CGO_ENABLED=1 CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -g" \
+	CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread" \
 	go test ./...
 
 # Docker build

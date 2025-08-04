@@ -1,6 +1,5 @@
 package main
 
-// CGO flags are now set via environment variables in Makefile and Dockerfile
 // #include <stdlib.h>
 // #include <stdio.h>
 // #include <string.h>

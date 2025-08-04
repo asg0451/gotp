@@ -21,8 +21,8 @@ RUN go mod download
 COPY . .
 
 # Set CGO flags for Erlang interface
-ENV CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-*/include -Wall -g"
-ENV CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-*/lib -lei -lpthread"
+ENV CGO_CFLAGS="-I/usr/lib/erlang/lib/erl_interface-5.5.2/include -Wall -g"
+ENV CGO_LDFLAGS="-L/usr/lib/erlang/lib/erl_interface-5.5.2/lib -lei -lpthread"
 
 # Build the application
 RUN CGO_ENABLED=1 go build -o gotp .
