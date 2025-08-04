@@ -33,19 +33,21 @@ func run() error {
 	var ec C.ei_cnode
 	if C.ei_connect_init(&ec, nodeName, cookie, creation) != 0 {
 		// TODO: check errors: https://www.erlang.org/docs/20/man/erl_error
-		el := C.GoString(C.strerror(C.erl_errno))
-		return fmt.Errorf("ei_connect_init failed: %s", el)
+		return fmt.Errorf("ei_connect_init failed: %s", getErlError())
 	}
 
 	var sockfd C.int
 	if sockfd = C.ei_connect(&ec, nodeName); sockfd < 0 {
-		el := C.GoString(C.strerror(C.erl_errno))
-		return fmt.Errorf("ei_connect failed: %s", el)
+		return fmt.Errorf("ei_connect failed: %s", getErlError())
 	}
 
 	fmt.Println("Connected to Erlang node")
 
 	return nil
+}
+
+func getErlError() string {
+	return C.GoString(C.strerror(C.erl_errno))
 }
 
 // result := C.hello_world()
