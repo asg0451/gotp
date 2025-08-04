@@ -8,7 +8,6 @@ extern "C" {
 #include "ei.h"
 
 
-
 // Simple inline wrappers for variadic functions (CGO doesn't support variadic)
 static inline int gotp_wrapped_ei_x_format_wo_ver_0(ei_x_buff* x, const char *fmt) {
     return ei_x_format_wo_ver(x, fmt);
