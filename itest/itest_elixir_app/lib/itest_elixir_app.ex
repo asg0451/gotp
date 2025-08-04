@@ -6,6 +6,14 @@ defmodule ItestElixirApp do
       GenServer.start_link(__MODULE__, arg, name: __MODULE__)
     end
 
+    # because C genserver idk
+    def cast_to_self(msg) do
+      GenServer.cast(__MODULE__, msg)
+    end
+    def call_to_self(msg) do
+      GenServer.call(__MODULE__, msg)
+    end
+
     # Callbacks
 
     @impl true

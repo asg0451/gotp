@@ -50,6 +50,27 @@ func run() error {
 
 	fmt.Println("Connected to remote Erlang node")
 
+	// send message to remote node
+	// 1. create tuple to send
+	var req C.ei_x_buff
+	C.ei_x_new_with_version(&req)
+	C.ei_x_encode_tuple_header(&req, 2)
+	C.ei_x_encode_pid(&req, C.ei_self(&ec))
+	C.ei_x_encode_atom(&req, C.CString("Hello world"))
+	defer C.ei_x_free(&req)
+	// 2. send message
+	if C.ei_reg_send(&ec, remoteNodeSockFd, C.CString("ItestElixirApp.Worker"), req.buff, req.index) != 0 {
+		return fmt.Errorf("ei_reg_send failed: %s", getErlError())
+	}
+	fmt.Println("Sent message to remote Erlang node")
+
+	// ei_x_buff buf;
+	// ei_x_new_with_version(&buf);
+	// ei_x_encode_tuple_header(&buf, 2);
+	// ei_x_encode_pid(&buf, ei_self(ec));
+	// ei_x_encode_atom(&buf, "Hello world");
+	// ei_reg_send(&ec, fd, "my_server", buf.buff, buf.index);
+
 	return nil
 }
 
