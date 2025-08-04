@@ -33,16 +33,22 @@ func run() error {
 
 	var ec C.ei_cnode
 	if C.ei_connect_init(&ec, myNodeName, cookie, creation) != 0 {
-		// TODO: check errors: https://www.erlang.org/docs/20/man/erl_error
 		return fmt.Errorf("ei_connect_init failed: %s", getErlError())
 	}
 
-	var sockfd C.int
-	if sockfd = C.ei_connect(&ec, remoteNodeName); sockfd < 0 {
+	var pubFd C.int
+	if pubFd = C.ei_publish(&ec, 9999); pubFd < 0 {
+		return fmt.Errorf("ei_publish failed: %s", getErlError())
+	}
+
+	fmt.Println("Published port 9999 to epmd")
+
+	var remoteNodeSockFd C.int
+	if remoteNodeSockFd = C.ei_connect(&ec, remoteNodeName); remoteNodeSockFd < 0 {
 		return fmt.Errorf("ei_connect failed: %s", getErlError())
 	}
 
-	fmt.Println("Connected to Erlang node")
+	fmt.Println("Connected to remote Erlang node")
 
 	return nil
 }
