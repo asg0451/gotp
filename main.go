@@ -1,8 +1,5 @@
 package main
 
-//  -lerl_interface -lei -lsocket -lnsl
-// ?
-
 // #cgo CFLAGS: -I/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/include -Wall -g
 // #cgo LDFLAGS: -L/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/lib -L. -lei -lpthread
 // #include <stdlib.h>

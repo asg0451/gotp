@@ -1,0 +1,32 @@
+defmodule ItestElixirApp do
+  defmodule Worker do
+    use GenServer
+
+    def start_link(arg) do
+      GenServer.start_link(__MODULE__, arg, name: __MODULE__)
+    end
+
+    # Callbacks
+
+    @impl true
+    def init(stack) do
+      {:ok, stack}
+    end
+
+    @impl true
+    def handle_call(:pop, _from, [head | tail]) do
+      {:reply, head, tail}
+    end
+
+    @impl true
+    def handle_cast({:push, element}, state) do
+      {:noreply, [element | state]}
+    end
+
+    @impl true
+    def handle_info(msg, state) do
+      IO.puts("Received message: #{inspect(msg)}")
+      {:noreply, state}
+    end
+  end
+end
