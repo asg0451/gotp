@@ -1,7 +1,6 @@
 package main
 
-// #cgo CFLAGS: -I/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/include -Wall -g
-// #cgo LDFLAGS: -L/opt/homebrew/Cellar/erlang/28.0.1/lib/erlang/lib/erl_interface-5.6/lib -L. -lei -lpthread
+// CGO flags are now set via environment variables in Makefile and Dockerfile
 // #include <stdlib.h>
 // #include <stdio.h>
 // #include <string.h>
