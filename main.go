@@ -27,17 +27,18 @@ func run() error {
 	C.ei_init()
 
 	cookie := C.CString("super_secret")
-	nodeName := C.CString("itestapp@localhost")
+	myNodeName := C.CString("itest")
+	remoteNodeName := C.CString("itestapp@localhost")
 	creation := C.uint(1)
 
 	var ec C.ei_cnode
-	if C.ei_connect_init(&ec, nodeName, cookie, creation) != 0 {
+	if C.ei_connect_init(&ec, myNodeName, cookie, creation) != 0 {
 		// TODO: check errors: https://www.erlang.org/docs/20/man/erl_error
 		return fmt.Errorf("ei_connect_init failed: %s", getErlError())
 	}
 
 	var sockfd C.int
-	if sockfd = C.ei_connect(&ec, nodeName); sockfd < 0 {
+	if sockfd = C.ei_connect(&ec, remoteNodeName); sockfd < 0 {
 		return fmt.Errorf("ei_connect failed: %s", getErlError())
 	}
 
