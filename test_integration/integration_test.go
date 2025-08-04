@@ -73,7 +73,7 @@ func TestIntegrationWithElixirApp(t *testing.T) {
 		t.Fatalf("Go program failed: %v\nOutput: %s", err, goOutput.String())
 	}
 
-	// Check for expected output
+	// Check for expected output from Go program
 	output := goOutput.String()
 	if !strings.Contains(output, "Connected to remote Erlang node") {
 		t.Errorf("Expected 'Connected to remote Erlang node' in output, got: %s", output)
@@ -82,8 +82,15 @@ func TestIntegrationWithElixirApp(t *testing.T) {
 		t.Errorf("Expected 'Sent message to remote Erlang node' in output, got: %s", output)
 	}
 
+	// Check for message receipt in Elixir process stdout
+	elixirOutputStr := elixirOutput.String()
+	if !strings.Contains(elixirOutputStr, "Received message: \"Hello world\"") {
+		t.Errorf("Expected Elixir process to receive message 'Hello world', but got: %s", elixirOutputStr)
+	}
+
 	t.Log("Integration test completed successfully")
 	t.Logf("Go program output: %s", output)
+	t.Logf("Elixir process output: %s", elixirOutputStr)
 }
 
 func TestElixirNodeConnection(t *testing.T) {
@@ -139,8 +146,15 @@ func TestElixirNodeConnection(t *testing.T) {
 		t.Fatalf("Elixir test failed: %v, output: %s", err, string(output))
 	}
 
+	// Check for message receipt in Elixir process stdout
+	elixirOutputStr := elixirOutput.String()
+	if !strings.Contains(elixirOutputStr, "Received message: \"hi\"") {
+		t.Errorf("Expected Elixir process to receive message 'hi', but got: %s", elixirOutputStr)
+	}
+
 	t.Log("Direct Elixir communication test completed successfully")
 	t.Logf("Elixir test output: %s", string(output))
+	t.Logf("Elixir process output: %s", elixirOutputStr)
 }
 
 func startEpmd(t *testing.T) {
